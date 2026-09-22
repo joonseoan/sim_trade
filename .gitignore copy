@@ -1,0 +1,25 @@
+.runtime/
+.claude/
+.beads/
+.logs/
+
+# Dependencies
+node_modules/
+__pycache__/
+.venv/
+
+# Environment
+.env
+
+# Database
+db/
+**/db/finally.db
+
+# Next.js
+.next/
+out/
+
+# Test artifacts
+.pytest_cache/
+test-results/
+playwright-report/
