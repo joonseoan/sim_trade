@@ -1,4 +1,46 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/** Read the cash balance shown in the header. */
+async function readCash(page: Page): Promise<number> {
+  const text = await page.locator("header").innerText();
+  const match = text.match(/Cash\s+\$([\d,]+\.\d{2})/);
+  return match ? parseFloat(match[1].replace(/,/g, "")) : NaN;
+}
+
+/** Return the positions table row for a ticker. */
+function positionRow(page: Page, ticker: string) {
+  const panel = page.getByRole("heading", { name: "Positions" }).locator("..");
+  return panel.locator("tr", {
+    has: page.locator("td:first-child", { hasText: new RegExp(`^${ticker}$`) }),
+  });
+}
+
+/** Read the held quantity for a ticker, 0 when no position is shown. */
+async function readQty(page: Page, ticker: string): Promise<number> {
+  const row = positionRow(page, ticker);
+  if ((await row.count()) === 0) return 0;
+  return parseFloat(await row.locator("td").nth(1).innerText());
+}
+
+/** Load the app and wait until prices stream and the portfolio has loaded. */
+async function openLoaded(page: Page) {
+  await page.goto("/");
+  await expect(page.getByText("connected")).toBeVisible({ timeout: 10_000 });
+  await expect.poll(() => readCash(page), { timeout: 10_000 }).toBeGreaterThan(0);
+}
+
+/** Submit a trade via the trade bar and return the fill price from the status. */
+async function trade(page: Page, side: "buy" | "sell", ticker: string, qty: number) {
+  await page.getByPlaceholder("Ticker", { exact: true }).fill(ticker);
+  await page.getByPlaceholder("Qty").fill(String(qty));
+  await page.getByRole("button", { name: side.toUpperCase(), exact: true }).click();
+  const status = page.getByText(
+    new RegExp(`^${side.toUpperCase()} ${qty} ${ticker} @ \\$[\\d.]+$`)
+  );
+  await expect(status).toBeVisible({ timeout: 5_000 });
+  const match = (await status.innerText()).match(/\$([\d.]+)$/);
+  return parseFloat(match![1]);
+}
 
 test.describe("Fresh start", () => {
   test("shows default watchlist and $10k balance", async ({ page }) => {
@@ -41,27 +83,33 @@ test.describe("Watchlist CRUD", () => {
 
 test.describe("Trading", () => {
   test("buy shares: cash decreases and position appears", async ({ page }) => {
-    await page.goto("/");
-    // Wait for prices to be available
-    await expect(page.getByText("connected")).toBeVisible({ timeout: 10_000 });
+    await openLoaded(page);
+    const cashBefore = await readCash(page);
+    const qtyBefore = await readQty(page, "GOOGL");
 
-    // Look for a trade input or bar - implementation-dependent
-    const tradePanel = page.locator("[class*=Trade]").or(page.getByText("Trade"));
-    if (await tradePanel.isVisible()) {
-      // Trade panel exists - implementation-specific assertions would go here
-      await expect(tradePanel).toBeVisible();
-    }
+    const price = await trade(page, "buy", "GOOGL", 2);
+
+    await expect.poll(() => readCash(page)).toBeCloseTo(cashBefore - 2 * price, 1);
+    await expect(positionRow(page, "GOOGL")).toBeVisible();
+    await expect.poll(() => readQty(page, "GOOGL")).toBe(qtyBefore + 2);
   });
 
   test("sell shares: cash increases and position updates", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByText("connected")).toBeVisible({ timeout: 10_000 });
+    await openLoaded(page);
+    const cashStart = await readCash(page);
+    const buyPrice = await trade(page, "buy", "JPM", 2);
+    await expect.poll(() => readCash(page)).toBeCloseTo(cashStart - 2 * buyPrice, 1);
+    const held = await readQty(page, "JPM");
+    const cashBefore = await readCash(page);
 
-    // Placeholder for when trade execution is implemented
-    const tradePanel = page.locator("[class*=Trade]").or(page.getByText("Trade"));
-    if (await tradePanel.isVisible()) {
-      await expect(tradePanel).toBeVisible();
-    }
+    // Partial sell: cash rises by proceeds, position quantity drops
+    const price = await trade(page, "sell", "JPM", 1);
+    await expect.poll(() => readCash(page)).toBeCloseTo(cashBefore + price, 1);
+    await expect.poll(() => readQty(page, "JPM")).toBe(held - 1);
+
+    // Sell the rest: position disappears
+    await trade(page, "sell", "JPM", held - 1);
+    await expect(positionRow(page, "JPM")).toHaveCount(0);
   });
 });
 
