@@ -4,10 +4,21 @@ import os
 
 os.environ["LLM_MOCK"] = "true"
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.market.cache import price_cache
+
+
+@pytest.fixture(autouse=True)
+def seed_prices():
+    """Seed the live price cache so chat trades have a market price."""
+    price_cache.update("AAPL", 150.0)
+    price_cache.update("TSLA", 150.0)
+    yield
+    price_cache._prices.clear()
 
 
 @pytest_asyncio.fixture
@@ -40,7 +51,7 @@ async def test_chat_greeting(client):
 
 
 async def test_chat_buy_aapl(client):
-    """Mock buy always buys 10 shares of the matched ticker at $150."""
+    """Mock buy always buys 10 shares of the matched ticker at the cached price."""
     resp = await client.post("/api/chat", json={"message": "buy some AAPL"})
     assert resp.status_code == 200
     data = resp.json()
@@ -71,7 +82,7 @@ async def test_chat_buy_then_sell(client):
     assert data["trades"][0]["ticker"] == "TSLA"
     assert "Errors" not in data["message"]
 
-    # Sell (10 shares at avg cost)
+    # Sell (10 shares at the cached price)
     resp = await client.post("/api/chat", json={"message": "sell some TSLA"})
     data = resp.json()
     assert "Insufficient" not in data["message"]

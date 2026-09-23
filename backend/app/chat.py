@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from litellm import acompletion
 
 from app.database import get_db
+from app.market.cache import price_cache
 
 router = APIRouter()
 
@@ -204,12 +205,12 @@ def _mock_response(message: str) -> ChatResponse:
 async def _execute_trade(
     db, ticker: str, side: str, quantity: float
 ) -> str | None:
-    """Execute a trade. Returns error string on failure, None on success."""
-    # We need a price. Use avg_cost for sells, or a default for buys.
-    # In a full system this comes from the price cache. For now, use a
-    # placeholder price of 100.0 if no market data is available.
-    # TODO: integrate with market data price cache when available
-    price = 150.0  # default placeholder
+    """Execute a trade at the live cached price. Returns error string on failure, None on success."""
+    ticker = ticker.upper()
+    update = price_cache.get(ticker)
+    if update is None:
+        return f"No price available for {ticker}"
+    price = update.price
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -262,7 +263,6 @@ async def _execute_trade(
             held = existing["quantity"] if existing else 0
             return f"Insufficient shares: want to sell {quantity} {ticker} but hold {held}"
 
-        price = existing["avg_cost"]  # sell at avg cost for now
         proceeds = price * quantity
         new_qty = existing["quantity"] - quantity
 
