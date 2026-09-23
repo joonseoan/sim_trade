@@ -129,3 +129,60 @@ async def test_chat_fallback(client):
     resp = await client.post("/api/chat", json={"message": "random nonsense xyz"})
     data = resp.json()
     assert "trade" in data["message"].lower() or "portfolio" in data["message"].lower()
+
+
+async def _recorded_trades() -> list[tuple[str, str, float]]:
+    """Return (ticker, side, price) for every trade in the test DB."""
+    import app.database as database
+
+    db = await database.get_db()
+    try:
+        cur = await db.execute(
+            "SELECT ticker, side, price FROM trades ORDER BY executed_at"
+        )
+        return [(r["ticker"], r["side"], r["price"]) for r in await cur.fetchall()]
+    finally:
+        await db.close()
+
+
+async def test_chat_buy_executes_at_cached_price(client):
+    price_cache.update("AAPL", 187.25)
+    await client.post("/api/chat", json={"message": "buy some AAPL"})
+
+    assert await _recorded_trades() == [("AAPL", "buy", 187.25)]
+    portfolio = (await client.get("/api/portfolio")).json()
+    assert portfolio["cash_balance"] == 10000.0 - 10 * 187.25
+    assert portfolio["positions"][0]["avg_cost"] == 187.25
+
+
+async def test_chat_sell_executes_at_latest_cached_price(client):
+    price_cache.update("AAPL", 187.25)
+    await client.post("/api/chat", json={"message": "buy some AAPL"})
+    price_cache.update("AAPL", 200.0)
+    await client.post("/api/chat", json={"message": "sell some AAPL"})
+
+    assert await _recorded_trades() == [
+        ("AAPL", "buy", 187.25),
+        ("AAPL", "sell", 200.0),
+    ]
+    portfolio = (await client.get("/api/portfolio")).json()
+    assert portfolio["cash_balance"] == 10000.0 - 10 * 187.25 + 10 * 200.0
+
+
+async def test_chat_and_manual_trade_use_same_price(client):
+    price_cache.update("AAPL", 187.25)
+    await client.post("/api/chat", json={"message": "buy some AAPL"})
+    await client.post(
+        "/api/portfolio/trade",
+        json={"ticker": "AAPL", "quantity": 10, "side": "buy"},
+    )
+
+    prices = [price for _, _, price in await _recorded_trades()]
+    assert prices == [187.25, 187.25]
+
+
+async def test_chat_trade_without_cached_price_fails(client):
+    resp = await client.post("/api/chat", json={"message": "buy some MSFT"})
+
+    assert "No price available for MSFT" in resp.json()["message"]
+    assert await _recorded_trades() == []
