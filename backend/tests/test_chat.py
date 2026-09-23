@@ -186,3 +186,11 @@ async def test_chat_trade_without_cached_price_fails(client):
 
     assert "No price available for MSFT" in resp.json()["message"]
     assert await _recorded_trades() == []
+
+
+async def test_chat_trade_creates_snapshot(client):
+    """A chat-executed trade records a post-trade portfolio snapshot."""
+    await client.post("/api/chat", json={"message": "buy some AAPL"})
+    resp = await client.get("/api/portfolio/history")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1

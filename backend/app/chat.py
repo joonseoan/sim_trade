@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.market.cache import price_cache
 from app.market.provider import register_ticker
+from app.portfolio import take_snapshot
 
 router = APIRouter()
 
@@ -311,6 +312,7 @@ async def _execute_trade(db, ticker: str, side: str, quantity: float) -> str | N
         "VALUES (?, 'default', ?, ?, ?, ?, ?)",
         (str(uuid.uuid4()), ticker, side, quantity, price, now),
     )
+    await take_snapshot(db)
     await db.commit()
     return None
 
