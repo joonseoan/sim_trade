@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.market.cache import price_cache
+from app.market.provider import register_ticker
 
 router = APIRouter(prefix="/api/watchlist", tags=["watchlist"])
 
@@ -74,6 +75,7 @@ async def add_ticker(body: AddTickerRequest):
             (str(uuid.uuid4()), ticker, now),
         )
         await db.commit()
+        register_ticker(ticker)
         update = price_cache.get(ticker)
         return WatchlistItem(ticker=ticker, price=update.price if update else None)
     finally:

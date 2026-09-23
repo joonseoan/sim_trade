@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.chat import router as chat_router
-from app.database import init_db
+from app.database import get_watchlist_tickers, init_db
 from app.market.provider import create_provider
 from app.market.stream import router as stream_router
 from app.portfolio import router as portfolio_router
@@ -25,7 +25,7 @@ from app.snapshots import start_snapshot_recorder, stop_snapshot_recorder
 async def lifespan(app: FastAPI):
     """Initialize database, start market data provider and snapshot recorder."""
     await init_db()
-    provider = create_provider()
+    provider = create_provider(await get_watchlist_tickers())
     await provider.start()
     start_snapshot_recorder()
     yield

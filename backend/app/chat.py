@@ -12,6 +12,7 @@ from litellm import acompletion
 
 from app.database import get_db
 from app.market.cache import price_cache
+from app.market.provider import register_ticker
 
 router = APIRouter()
 
@@ -313,6 +314,7 @@ async def _execute_watchlist_change(db, ticker: str, action: str) -> str | None:
             await db.commit()
         except Exception:
             return f"{ticker} is already on the watchlist"
+        register_ticker(ticker.upper())
 
     elif action == "remove":
         cur = await db.execute(

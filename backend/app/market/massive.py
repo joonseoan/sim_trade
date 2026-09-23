@@ -20,7 +20,7 @@ class MassiveClient(MarketDataProvider):
 
     def __init__(self, tickers: list[str]):
         self._api_key = os.environ["MASSIVE_API_KEY"]
-        self._tickers = tickers
+        self._tickers = list(tickers)
         self._poll_interval = float(os.environ.get("MASSIVE_POLL_INTERVAL", DEFAULT_POLL_INTERVAL))
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
@@ -38,6 +38,11 @@ class MassiveClient(MarketDataProvider):
                 pass
         if self._client:
             await self._client.aclose()
+
+    def add_ticker(self, ticker: str) -> None:
+        """Include a ticker in subsequent polls."""
+        if ticker not in self._tickers:
+            self._tickers.append(ticker)
 
     async def _run(self) -> None:
         """Poll loop."""

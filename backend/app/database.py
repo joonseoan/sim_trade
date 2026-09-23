@@ -71,6 +71,18 @@ async def get_db() -> aiosqlite.Connection:
     return db
 
 
+async def get_watchlist_tickers() -> list[str]:
+    """Return the default user's watchlist tickers in insertion order."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT ticker FROM watchlist WHERE user_id = 'default' ORDER BY added_at"
+        )
+        return [row["ticker"] for row in await cursor.fetchall()]
+    finally:
+        await db.close()
+
+
 async def init_db():
     """Create schema and seed data if needed."""
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)

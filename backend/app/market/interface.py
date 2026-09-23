@@ -13,3 +13,7 @@ class MarketDataProvider(ABC):
     @abstractmethod
     async def stop(self) -> None:
         """Stop producing price updates."""
+
+    @abstractmethod
+    def add_ticker(self, ticker: str) -> None:
+        """Start producing price updates for an additional ticker."""
