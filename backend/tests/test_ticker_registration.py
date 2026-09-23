@@ -1,6 +1,7 @@
 """Tests for registering new watchlist tickers with the market data provider."""
 
 import pytest
+
 from app.database import DEFAULT_TICKERS
 from app.market import provider
 from app.market.cache import price_cache
@@ -54,14 +55,17 @@ def test_create_provider_uses_given_tickers(isolated_market):
 
 
 async def test_watchlist_add_registers_ticker(client, isolated_market):
-    provider.create_provider(DEFAULT_TICKERS)
+    sim = provider.create_provider(DEFAULT_TICKERS)
+    assert isinstance(sim, Simulator)
     resp = await client.post("/api/watchlist", json={"ticker": "pypl"})
     assert resp.status_code == 200
     assert resp.json()["price"] is not None
-    assert "PYPL" in provider._active._prices
+    assert "PYPL" in sim._prices
 
 
-async def test_chat_watchlist_add_registers_ticker(client, isolated_market, monkeypatch):
+async def test_chat_watchlist_add_registers_ticker(
+    client, isolated_market, monkeypatch
+):
     monkeypatch.setenv("LLM_MOCK", "true")
     provider.create_provider(DEFAULT_TICKERS)
     resp = await client.post("/api/chat", json={"message": "add PYPL to watchlist"})
