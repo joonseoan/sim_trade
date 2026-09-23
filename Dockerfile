@@ -20,6 +20,8 @@ RUN cd backend && uv sync --frozen --no-dev
 # Copy frontend build output as static files
 COPY --from=frontend-build /build/out/ static/
 
+ENV DB_PATH=/app/db/finally.db
+
 EXPOSE 8000
 
 WORKDIR /app/backend

@@ -57,7 +57,7 @@ npm run dev
 
 To serve the built UI from the backend instead, run `npm run build` in `frontend/` and copy `frontend/out/` to `static/` at the repo root.
 
-The local SQLite database is created at `backend/db/finally.db`. Override it with `DB_PATH`.
+The local SQLite database is created at `backend/db/finally.db`. Override it with `DB_PATH`. In Docker it defaults to `/app/db/finally.db` (the volume mount).
 
 ## Tests
 
