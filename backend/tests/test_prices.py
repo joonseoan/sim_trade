@@ -15,6 +15,7 @@ def test_first_update_sets_previous_price_to_current():
     cache = PriceCache()
     cache.update("AAPL", 150.0)
     entry = cache.get("AAPL")
+    assert entry is not None
     assert entry.previous_price == 150.0
 
 
@@ -23,6 +24,7 @@ def test_subsequent_update_tracks_previous_price():
     cache.update("AAPL", 150.0)
     cache.update("AAPL", 155.0)
     entry = cache.get("AAPL")
+    assert entry is not None
     assert entry.price == 155.0
     assert entry.previous_price == 150.0
 
@@ -44,5 +46,6 @@ def test_update_stores_timestamp():
     cache = PriceCache()
     cache.update("AAPL", 150.0)
     entry = cache.get("AAPL")
+    assert entry is not None
     assert entry.timestamp is not None
     assert len(entry.timestamp) > 0

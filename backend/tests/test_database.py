@@ -1,9 +1,9 @@
 """Tests for database initialization and schema."""
 
-import pytest
 import aiosqlite
+import pytest
 
-from app.database import DB_PATH, DEFAULT_TICKERS, get_db, init_db
+from app.database import DEFAULT_TICKERS, get_db, init_db
 
 
 @pytest.mark.asyncio
@@ -34,6 +34,7 @@ async def test_seed_creates_default_user(db):
         cursor = await conn.execute("SELECT id, cash_balance FROM users_profile")
         row = await cursor.fetchone()
         assert row is not None
+        assert row is not None
         assert row[0] == "default"
         assert row[1] == 10000.0
     finally:
@@ -61,10 +62,12 @@ async def test_init_db_is_idempotent(db):
     try:
         cursor = await conn.execute("SELECT COUNT(*) FROM users_profile")
         row = await cursor.fetchone()
+        assert row is not None
         assert row[0] == 1
 
         cursor = await conn.execute("SELECT COUNT(*) FROM watchlist")
         row = await cursor.fetchone()
+        assert row is not None
         assert row[0] == len(DEFAULT_TICKERS)
     finally:
         await conn.close()
@@ -76,6 +79,7 @@ async def test_wal_mode_enabled(db):
     try:
         cursor = await conn.execute("PRAGMA journal_mode")
         row = await cursor.fetchone()
+        assert row is not None
         assert row[0] == "wal"
     finally:
         await conn.close()
@@ -115,6 +119,7 @@ async def test_trades_table_accepts_buy_and_sell(db):
 
         cursor = await conn.execute("SELECT COUNT(*) FROM trades")
         row = await cursor.fetchone()
+        assert row is not None
         assert row[0] == 2
     finally:
         await conn.close()

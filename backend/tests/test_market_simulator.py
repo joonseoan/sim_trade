@@ -1,16 +1,11 @@
 """Tests for the GBM market data simulator."""
 
-import math
-
 import numpy as np
-import pytest
 
 from app.market.simulator import (
     TICKER_CONFIG,
-    TECH_TICKERS,
-    FINANCE_TICKERS,
-    _build_correlation_matrix,
     Simulator,
+    _build_correlation_matrix,
 )
 
 

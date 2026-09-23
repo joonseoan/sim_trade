@@ -1,7 +1,7 @@
 """Shared in-memory price cache."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.market.models import PriceUpdate
 
@@ -29,7 +29,7 @@ class PriceCache:
             ticker=ticker,
             price=round(price, 2),
             previous_price=round(previous_price, 2),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             direction=direction,
         )
         self._prices[ticker] = update
@@ -50,7 +50,7 @@ class PriceCache:
         try:
             await asyncio.wait_for(self._event.wait(), timeout=timeout)
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return False
 
 

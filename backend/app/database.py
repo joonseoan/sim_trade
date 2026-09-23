@@ -2,7 +2,7 @@
 
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 
@@ -60,7 +60,18 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 """
 
-DEFAULT_TICKERS = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "JPM", "V", "NFLX"]
+DEFAULT_TICKERS = [
+    "AAPL",
+    "GOOGL",
+    "MSFT",
+    "AMZN",
+    "TSLA",
+    "NVDA",
+    "META",
+    "JPM",
+    "V",
+    "NFLX",
+]
 
 
 async def get_db() -> aiosqlite.Connection:
@@ -94,8 +105,9 @@ async def init_db():
         # Check if seed data exists
         cursor = await db.execute("SELECT COUNT(*) FROM users_profile")
         row = await cursor.fetchone()
+        assert row is not None
         if row[0] == 0:
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             await db.execute(
                 "INSERT INTO users_profile (id, cash_balance, created_at) VALUES (?, ?, ?)",
                 ("default", 10000.0, now),

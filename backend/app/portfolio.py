@@ -1,7 +1,7 @@
 """Portfolio API routes: positions, trading, snapshots."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -66,7 +66,7 @@ async def take_snapshot(db):
         price = update.price if update else pos["avg_cost"]
         total += pos["quantity"] * price
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     await db.execute(
         "INSERT INTO portfolio_snapshots (id, user_id, total_value, recorded_at) VALUES (?, 'default', ?, ?)",
         (str(uuid.uuid4()), round(total, 2), now),
@@ -82,6 +82,7 @@ async def get_portfolio():
             "SELECT cash_balance FROM users_profile WHERE id = 'default'"
         )
         user = await cursor.fetchone()
+        assert user is not None
         cash = user["cash_balance"]
 
         cursor = await db.execute(
@@ -98,16 +99,20 @@ async def get_portfolio():
             update = price_cache.get(ticker)
             current_price = update.price if update else avg_cost
             unrealized_pnl = (current_price - avg_cost) * qty
-            pnl_percent = ((current_price - avg_cost) / avg_cost * 100) if avg_cost else 0
+            pnl_percent = (
+                ((current_price - avg_cost) / avg_cost * 100) if avg_cost else 0
+            )
             total_value += current_price * qty
-            positions.append(Position(
-                ticker=ticker,
-                quantity=qty,
-                avg_cost=round(avg_cost, 2),
-                current_price=round(current_price, 2),
-                unrealized_pnl=round(unrealized_pnl, 2),
-                pnl_percent=round(pnl_percent, 2),
-            ))
+            positions.append(
+                Position(
+                    ticker=ticker,
+                    quantity=qty,
+                    avg_cost=round(avg_cost, 2),
+                    current_price=round(current_price, 2),
+                    unrealized_pnl=round(unrealized_pnl, 2),
+                    pnl_percent=round(pnl_percent, 2),
+                )
+            )
 
         return PortfolioResponse(
             cash_balance=round(cash, 2),
@@ -141,9 +146,10 @@ async def execute_trade(body: TradeRequest):
             "SELECT cash_balance FROM users_profile WHERE id = 'default'"
         )
         user = await cursor.fetchone()
+        assert user is not None
         cash = user["cash_balance"]
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         trade_id = str(uuid.uuid4())
 
         if side == "buy":
@@ -245,7 +251,9 @@ async def get_portfolio_history():
         )
         rows = await cursor.fetchall()
         return [
-            SnapshotResponse(total_value=row["total_value"], recorded_at=row["recorded_at"])
+            SnapshotResponse(
+                total_value=row["total_value"], recorded_at=row["recorded_at"]
+            )
             for row in rows
         ]
     finally:

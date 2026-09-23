@@ -11,9 +11,9 @@ _tmpdir = tempfile.mkdtemp()
 _db_path = os.path.join(_tmpdir, "test.db")
 os.environ["DB_PATH"] = _db_path
 
+import app.database as database  # noqa: E402
 from app.database import init_db  # noqa: E402
 from app.main import app  # noqa: E402
-import app.database as database  # noqa: E402
 
 
 @pytest_asyncio.fixture

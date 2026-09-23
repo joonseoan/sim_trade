@@ -1,7 +1,7 @@
 """Watchlist API routes."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -40,12 +40,16 @@ async def get_watchlist():
             if update:
                 prev = update.previous_price
                 change_pct = ((update.price - prev) / prev * 100) if prev else None
-                items.append(WatchlistItem(
-                    ticker=ticker,
-                    price=update.price,
-                    previous_price=prev,
-                    change_percent=round(change_pct, 2) if change_pct is not None else None,
-                ))
+                items.append(
+                    WatchlistItem(
+                        ticker=ticker,
+                        price=update.price,
+                        previous_price=prev,
+                        change_percent=round(change_pct, 2)
+                        if change_pct is not None
+                        else None,
+                    )
+                )
             else:
                 items.append(WatchlistItem(ticker=ticker))
         return items
@@ -67,9 +71,11 @@ async def add_ticker(body: AddTickerRequest):
             (ticker,),
         )
         if await cursor.fetchone():
-            raise HTTPException(status_code=409, detail=f"{ticker} already in watchlist")
+            raise HTTPException(
+                status_code=409, detail=f"{ticker} already in watchlist"
+            )
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await db.execute(
             "INSERT INTO watchlist (id, user_id, ticker, added_at) VALUES (?, 'default', ?, ?)",
             (str(uuid.uuid4()), ticker, now),

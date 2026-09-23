@@ -21,7 +21,9 @@ class MassiveClient(MarketDataProvider):
     def __init__(self, tickers: list[str]):
         self._api_key = os.environ["MASSIVE_API_KEY"]
         self._tickers = list(tickers)
-        self._poll_interval = float(os.environ.get("MASSIVE_POLL_INTERVAL", DEFAULT_POLL_INTERVAL))
+        self._poll_interval = float(
+            os.environ.get("MASSIVE_POLL_INTERVAL", DEFAULT_POLL_INTERVAL)
+        )
         self._task: asyncio.Task | None = None
         self._client: httpx.AsyncClient | None = None
 
@@ -56,6 +58,7 @@ class MassiveClient(MarketDataProvider):
         url = f"{POLYGON_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers"
         params = {"tickers": tickers_csv, "apiKey": self._api_key}
 
+        assert self._client is not None
         try:
             resp = await self._client.get(url, params=params)
             resp.raise_for_status()

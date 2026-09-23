@@ -1,7 +1,6 @@
 """SSE streaming endpoint for live price updates."""
 
 import asyncio
-import json
 
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse

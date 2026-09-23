@@ -1,6 +1,5 @@
 """FastAPI application entry point."""
 
-import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,8 +16,8 @@ from app.database import get_watchlist_tickers, init_db
 from app.market.provider import create_provider
 from app.market.stream import router as stream_router
 from app.portfolio import router as portfolio_router
-from app.watchlist import router as watchlist_router
 from app.snapshots import start_snapshot_recorder, stop_snapshot_recorder
+from app.watchlist import router as watchlist_router
 
 
 @asynccontextmanager
