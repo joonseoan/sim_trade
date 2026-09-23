@@ -62,6 +62,7 @@ The local SQLite database is created at `backend/db/finally.db`. Override it wit
 ## Tests
 
 ```bash
+./scripts/test.sh                  # backend + frontend unit tests (refinery test_command)
 cd backend && uv run pytest        # backend unit tests
 cd frontend && npm test            # frontend unit tests (Vitest)
 cd frontend && npm run lint        # frontend lint
