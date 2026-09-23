@@ -13,7 +13,7 @@ export default function TradeBar({ onTradeExecuted }: TradeBarProps) {
   const [status, setStatus] = useState<string | null>(null);
 
   async function executeTrade(side: "buy" | "sell") {
-    const qty = parseInt(quantity, 10);
+    const qty = parseFloat(quantity);
     if (!ticker.trim() || isNaN(qty) || qty <= 0) return;
 
     try {
@@ -47,7 +47,8 @@ export default function TradeBar({ onTradeExecuted }: TradeBarProps) {
         placeholder="Qty"
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
-        min="1"
+        min="0"
+        step="any"
         className="w-20 rounded border border-border bg-bg-secondary px-2 py-1 text-text-primary outline-none focus:border-accent-blue"
       />
       <button
