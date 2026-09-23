@@ -193,6 +193,62 @@ describe("TradeBar", () => {
     expect(api.trade).not.toHaveBeenCalled();
   });
 
+  it("sends fractional quantity without truncation", async () => {
+    vi.mocked(api.trade).mockResolvedValue({
+      id: "t6",
+      ticker: "AAPL",
+      side: "buy",
+      quantity: 2.5,
+      price: 150.0,
+      executed_at: "2026-01-01T00:00:00Z",
+    });
+
+    render(<TradeBar onTradeExecuted={onTradeExecuted} />);
+    fireEvent.change(screen.getByPlaceholderText("Ticker"), {
+      target: { value: "AAPL" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Qty"), {
+      target: { value: "2.5" },
+    });
+    fireEvent.click(screen.getByText("BUY"));
+
+    await waitFor(() => {
+      expect(api.trade).toHaveBeenCalledWith({
+        ticker: "AAPL",
+        quantity: 2.5,
+        side: "buy",
+      });
+    });
+  });
+
+  it("allows quantity below one share", async () => {
+    vi.mocked(api.trade).mockResolvedValue({
+      id: "t7",
+      ticker: "AAPL",
+      side: "sell",
+      quantity: 0.5,
+      price: 150.0,
+      executed_at: "2026-01-01T00:00:00Z",
+    });
+
+    render(<TradeBar onTradeExecuted={onTradeExecuted} />);
+    fireEvent.change(screen.getByPlaceholderText("Ticker"), {
+      target: { value: "AAPL" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Qty"), {
+      target: { value: "0.5" },
+    });
+    fireEvent.click(screen.getByText("SELL"));
+
+    await waitFor(() => {
+      expect(api.trade).toHaveBeenCalledWith({
+        ticker: "AAPL",
+        quantity: 0.5,
+        side: "sell",
+      });
+    });
+  });
+
   it("uppercases ticker before sending", async () => {
     vi.mocked(api.trade).mockResolvedValue({
       id: "t5",
